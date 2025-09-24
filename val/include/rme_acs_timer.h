@@ -38,7 +38,9 @@ typedef enum {
   TIMER_INFO_SYS_CNT_BASE_N,
   TIMER_INFO_FRAME_NUM,
   TIMER_INFO_SYS_INTID,
-  TIMER_INFO_SYS_TIMER_STATUS
+  TIMER_INFO_SYS_TIMER_STATUS,
+  TIMER_INFO_SEC_PHY_EL1_INTID,
+  TIMER_INFO_SEC_PHY_EL1_FLAGS
 } TIMER_INFO_e;
 
 uint64_t val_timer_get_info(TIMER_INFO_e info_type, uint64_t instance);
@@ -53,5 +55,8 @@ void val_platform_timer_get_entry_index(uint64_t instance, uint32_t *block, uint
 uint64_t val_get_phy_el2_timer_count(void);
 uint64_t val_get_phy_el1_timer_count(void);
 uint64_t val_get_counter_frequency(void);
+uint32_t t01_entry(uint32_t num_pe);
+uint32_t t02_entry(uint32_t num_pe);
+uint32_t g01_entry(uint32_t num_pe);
 
 #endif // __RME_ACS_TIMER_H__

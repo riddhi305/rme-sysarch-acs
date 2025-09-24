@@ -89,6 +89,10 @@ val_timer_get_info(TIMER_INFO_e info_type, uint64_t instance)
           return g_timer_info_table->header.el2_timer_flag;
       case TIMER_INFO_SYS_TIMER_STATUS:
           return g_timer_info_table->header.sys_timer_status;
+      case TIMER_INFO_SEC_PHY_EL1_INTID:
+          return g_timer_info_table->header.s_el1_timer_gsiv;
+      case TIMER_INFO_SEC_PHY_EL1_FLAGS:
+          return g_timer_info_table->header.s_el1_timer_flag;
     default:
       return 0;
   }
@@ -335,4 +339,57 @@ val_timer_skip_if_cntbase_access_not_allowed(uint64_t index)
   } else
       return ACS_STATUS_SKIP;
 
+}
+
+
+/**
+  @brief   This API executes all the TIMER tests sequentially
+           1. Caller       -  Application layer.
+           2. Prerequisite -  Platform timer info available
+  @param   num_pe - the number of PE to run these tests on.
+  @return  Consolidated status of all the tests run.
+**/
+uint32_t
+val_timer_execute_tests(uint32_t num_pe)
+{
+  uint32_t status = ACS_STATUS_SKIP, i;
+  uint32_t num_timers;
+
+  /* Respect per-module skip strings */
+  for (i = 0; i < g_num_skip; i++) {
+      if (val_memory_compare((char8_t *)g_skip_test_str[i], TIMER_MODULE,
+                             val_strnlen(g_skip_test_str[i])) == 0)
+      {
+          val_print(ACS_PRINT_ALWAYS, "\n USER Override - Skipping all TIMER tests \n", 0);
+          return ACS_STATUS_SKIP;
+      }
+  }
+
+  /* Check if there are any tests to be executed in current module with user override options */
+  status = val_check_skip_module(TIMER_MODULE);
+  if (status) {
+    val_print(ACS_PRINT_ALWAYS, "\n USER Override - Skipping all TIMER tests \n", 0);
+    return ACS_STATUS_SKIP;
+  }
+
+  /* Ensure there is at least one platform/system counter frame */
+  num_timers = val_timer_get_info(TIMER_INFO_NUM_PLATFORM_TIMERS, 0);
+  if (num_timers == 0) {
+    val_print(ACS_PRINT_WARN, " No Platform Timers Found, Skipping TIMER tests...", 0);
+    return ACS_STATUS_SKIP;
+  }
+
+  /* Mark current module */
+  g_curr_module = 1 << TIMER_MODULE_ID;
+
+  val_print(ACS_PRINT_ALWAYS, "\n\n******************************************************* \n", 0);
+  val_print(ACS_PRINT_ALWAYS,     "                   TIMER  TESTS                        \n", 0);
+  val_print(ACS_PRINT_ALWAYS,     "******************************************************* \n", 0);
+
+  /* TIME_01: System counter bit-width validation */
+  status = t01_entry(num_pe);
+  status |= t02_entry(num_pe);
+  status |=g01_entry(num_pe);
+
+  return status;
 }

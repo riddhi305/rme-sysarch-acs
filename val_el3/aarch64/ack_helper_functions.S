@@ -72,6 +72,8 @@
         .globl read_id_aa64mmfr3_el1
         .globl write_mecid_rl_a_el3
         .globl read_mecid_rl_a_el3
+        .globl el3_cntps_program_ticks
+        .globl el3_cntps_disable
 
         /* @brief  The function is called to prepare the ack_handler entry installed in
          *         vbar_el3 by saving 10 GPRs and SP_EL3 in SP_EL0 which is programmed
@@ -453,6 +455,40 @@ val_mmio_read64_el3:
     ldr w0, [x0]       // Load 64-bit value from address (x0) into w0
     dsb ld             // Ensure read is completed
     ret
+
+// --- CNTPS helpers (EL3) ------------------------------------------
+        .align  2
+        .type   el3_cntps_program_ticks, %function
+/* int el3_cntps_program_ticks(uint64_t delta_ticks)
+ *   CVAL = CNTPCT_EL0 + delta_ticks
+ *   CTL  = 1 (ENABLE=1, IMASK=0)
+ * Returns 0 on success.
+ */
+el3_cntps_program_ticks:
+        // x0 = delta_ticks
+        mrs     x1, CNTPCT_EL0
+        add     x1, x1, x0
+        msr     CNTPS_CVAL_EL1, x1
+        isb
+        mov     x2, #1                // ENABLE=1, IMASK=0
+        msr     CNTPS_CTL_EL1, x2
+        isb
+        mov     w0, #0                // return 0
+        ret
+
+        .align  2
+        .type   el3_cntps_disable, %function
+/* int el3_cntps_disable(void)
+ *   CTL.ENABLE = 0
+ * Returns 0 on success.
+ */
+el3_cntps_disable:
+        mrs     x0, CNTPS_CTL_EL1
+        bic     x0, x0, #1            // clear ENABLE
+        msr     CNTPS_CTL_EL1, x0
+        isb
+        mov     w0, #0
+        ret
 
 // Data Synchronization Barrier Across the system
 mem_barrier:
