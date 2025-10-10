@@ -74,6 +74,15 @@
         .globl val_el3_read_id_aa64mmfr3_el1
         .globl val_el3_write_mecid_rl_a_el3
         .globl val_el3_read_mecid_rl_a_el3
+        .globl el3_cntps_program_ticks
+        .globl el3_cntps_disable
+        .globl el3_enable_irq_trap
+        .globl el3_gic_cpuif_enable_grp0
+        .globl read_icc_iar0_el1
+        .globl write_icc_eoir0_el1
+        .globl el3_handle_scr_smc
+        .globl read_icc_sre_el3
+
 
         /* @brief  The function is called to prepare the ack_handler entry installed in
          *         vbar_el3 by saving 10 GPRs and SP_EL3 in SP_EL0 which is programmed
@@ -294,6 +303,58 @@ val_el3_write_scr_el3:
        isb
        ret
 
+//Updates the SCR_EL3 with the given input value
+write_scr_el3:
+       msr    scr_el3, x0
+       isb
+       ret
+
+/* --- Minimal EL3 SMC handlers for SCR_EL3 query/update --- */
+/* FIDs:
+ *  x0 = 0xC2001101  => GET_SCR_EL3  (returns: x0=0, x1=SCR_EL3)
+ *  x0 = 0xC2001102  => UPDATE_SCR_EL3 (x1=set_bits, x2=clear_bits) (returns: x0=0)
+ *  else: x0 = -1
+ */
+        .align  2
+        .type   el3_handle_scr_smc, %function
+el3_handle_scr_smc:
+        /* x0=function ID, x1=set_bits/ret, x2=clear_bits */
+        mov     x9, x0
+
+        /* 0xC2001101 => GET_SCR_EL3 */
+        mov     x10, #0xC2000000
+        mov     x11, #0x1101       
+        orr     x10, x10, x11
+        cmp     x9,  x10
+        b.ne    1f
+
+        mrs     x1, scr_el3         // return SCR_EL3 in x1
+        mov     x0, #0              // status = 0
+        ret
+
+1:      /* 0xC2001102 => UPDATE_SCR_EL3 */
+        mov     x10, #0xC2000000
+        mov     x11, #0x1102
+        orr     x10, x10, x11
+        cmp     x9,  x10
+        b.ne    2f
+
+        mrs     x11, scr_el3
+        orr     x11, x11, x1        // set bits
+        bic     x11, x11, x2        // clear bits
+        msr     scr_el3, x11
+        isb
+        mov     x0, #0              // status = 0
+        ret
+
+2:      /* unknown FID */
+        mov     x0, #-1
+        ret
+
+read_icc_sre_el3:
+       mrs     x0, ICC_SRE_EL3
+       ret
+
 //Returns the TCR_El3 register value
 val_el3_read_tcr_el3:
        mrs    x0, tcr_el3
@@ -455,6 +516,117 @@ val_el3_mmio_read64:
     ldr w0, [x0]       // Load 64-bit value from address (x0) into w0
     dsb ld             // Ensure read is completed
     ret
+
+// --- CNTPS helpers (EL3) ------------------------------------------
+        .align  2
+        .type   el3_cntps_program_ticks, %function
+/* int el3_cntps_program_ticks(uint64_t delta_ticks)
+ *   CVAL = CNTPCT_EL0 + delta_ticks
+ *   CTL  = 1 (ENABLE=1, IMASK=0)
+ * Returns 0 on success.
+ */
+el3_cntps_program_ticks:
+        // x0 = delta_ticks
+        mrs     x1, CNTPCT_EL0
+        add     x1, x1, x0
+        msr     CNTPS_CVAL_EL1, x1
+        isb
+        mov     x2, #1                // ENABLE=1, IMASK=0
+        msr     CNTPS_CTL_EL1, x2
+        isb
+        mov     w0, #0                // return 0
+        ret
+
+        .align  2
+        .type   el3_cntps_disable, %function
+/* int el3_cntps_disable(void)
+ *   CTL.ENABLE = 0
+ * Returns 0 on success.
+ */
+el3_cntps_disable:
+        mrs     x0, CNTPS_CTL_EL1
+        bic     x0, x0, #1            // clear ENABLE
+        msr     CNTPS_CTL_EL1, x0
+        isb
+        mov     w0, #0
+        ret
+
+el3_enable_irq_trap:
+        mrs     x0, scr_el3
+        orr     x0, x0, #(1 << 1)     // SCR_EL3.IRQ = 1 (route IRQs to EL3)
+        msr     scr_el3, x0
+        isb
+        ret
+
+el3_gic_cpuif_enable_grp0:
+        mrs     x0, ICC_SRE_EL3
+        orr     x0, x0, #1            // enable system register interface
+        msr     ICC_SRE_EL3, x0
+        isb
+        mov     x0, #0xFF
+        msr     ICC_PMR_EL1, x0       // unmask priorities
+        mov     x0, #1
+        msr     ICC_IGRPEN0_EL1, x0   // enable Group0
+        isb
+        ret
+
+read_icc_iar0_el1:
+        mrs     x0, ICC_IAR0_EL1      // read pending Group0 INTID
+        ret
+
+write_icc_eoir0_el1:
+        msr     ICC_EOIR0_EL1, x0     // EOI Group0 INTID
+        isb
+        ret
+
+/* ---------------------------------------------------------------------
+ * acs_el3_sync_wrapper:
+ *  - Reads ESR_EL3, checks EC == 0x17 (SMC64).
+ *  - If FID is our SCR service (0xC2001101/0xC2001102), call el3_handle_scr_smc.
+ *  - Writes return regs back into the saved frame, then asm_eret_smc.
+ *  - Otherwise, tail-call original ack_handler_el3.
+ * --------------------------------------------------------------------*/
+        .align  4
+acs_el3_sync_wrapper:
+        /* Check EC bits [31:26] for SMC64 (0x17) */
+        mrs     x14, esr_el3
+        ubfx    x15, x14, #26, #6
+        cmp     x15, #0x17
+        b.ne    forward_to_tf
+
+        /* Pull original x0/x1/x2 (SMC64 args) from saved frame:
+           prepare_ack_handler_entry pushed:
+             base-0x10: x0, base-0x08: x1, base-0x20: x2, ...   */
+        ldr     x19, =ACS_EL3_HANDLER_SAVED_POINTER
+        ldr     x0,  [x19, #-0x10]   // FID
+        ldr     x1,  [x19, #-0x08]   // arg1 (or out for GET)
+        ldr     x2,  [x19, #-0x20]   // arg2
+
+        /* FID == 0xC2001101 ? (GET_SCR_EL3) */
+        movz    x13, #0x1101
+        movk    x13, #0xC200, lsl #16
+        cmp     x0,  x13
+        b.eq    do_service
+
+        /* FID == 0xC2001102 ? (UPDATE_SCR_EL3) */
+        movz    x13, #0x1102
+        movk    x13, #0xC200, lsl #16
+        cmp     x0,  x13
+        b.ne    forward_to_tf
+
+do_service:
+        bl      el3_handle_scr_smc   // returns x0=status, x1 may hold SCR for GET
+
+        /* Write returned x0/x1 back into saved frame so caller sees them */
+        ldr     x19, =ACS_EL3_HANDLER_SAVED_POINTER
+        str     x0,  [x19, #-0x10]   // ret x0
+        str     x1,  [x19, #-0x08]   // ret x1 (only meaningful for GET)
+
+        b       val_el3_asm_eret_smc         // restore regs & ERET to lower EL
+
+forward_to_tf:
+        b       val_el3_ack_handler      // not our FID: fall through to TF/PSCI/etc.
+
 
 // Data Synchronization Barrier Across the system
 val_el3_mem_barrier:
