@@ -41,7 +41,13 @@ typedef enum {
   CnthvTval,
   CnthvCtl,
   CnthvCval,
-  RegMaximum
+  RegMaximum,
+  CnthpsCtl, 
+  CnthpsTval, 
+  CnthvsCtl, 
+  CnthvsTval,
+  CnthpsCval, 
+  CnthvsCval
 } ARM_ARCH_TIMER_REGS;
 
 
@@ -131,5 +137,20 @@ uint64_t ArmReadCnthvCtl(void);
 void ArmWriteCnthvCtl(uint64_t Val);
 uint64_t ArmReadCnthvTval(void);
 void ArmWriteCnthvTval(uint64_t Val);
+
+/* Secure EL2 physical (CNTHPS_*_EL2) */
+uint64_t ArmReadCnthpsCtl(void);
+void ArmWriteCnthpsCtl(uint64_t);
+uint64_t ArmReadCnthpsTval(void);
+void ArmWriteCnthpsTval(uint64_t);
+uint64_t ArmReadCnthpsCval(void); 
+
+/* Secure EL2 virtual (CNTHVS_*_EL2) */
+uint64_t ArmReadCnthvsCtl(void);
+void ArmWriteCnthvsCtl(uint64_t);
+uint64_t ArmReadCnthvsTval(void);
+void ArmWriteCnthvsTval(uint64_t);
+uint64_t ArmReadCnthvsCval(void);
+
 
 #endif // __ARM_ARCH_TIMER_H__

@@ -37,6 +37,12 @@
 #define MEC_SERVICE               0x13
 #define RME_CMO_POE               0x14
 #define RME_GET_SHARED_MEM        0x15
+#define RME_READ_CNTPCT           0x16
+#define RME_READ_CNTID            0x17
+#define SEC_TIMER_SERVICE         0x18
+#define SMC_FID_GET_SCR_EL3       0x19  /* fast call, 64b convention */
+#define SMC_FID_UPDATE_SCR_EL3    0x20  /* Arg1=set_bits, Arg2=clear_bits */
+#define SMMU_READ_CFG_BANK        0x21
 
 /* General Defines used by tests */
 #define INIT_DATA            0x11
@@ -70,6 +76,22 @@
 
 /* WatchDog register offset */
 #define WD_IIDR_OFFSET 0xFCC
+
+/* TIMER offsets */
+#define CNTPCT_LOWER  0x00
+#define CNTPCT_HIGHER 0x04
+#define CNTID_OFFSET  0x1C
+#define CNTCV_LOWER   0x008
+#define CNTCV_HIGHER  0x00C
+#define CNTCR_OFFSET  0x000u    /* Control register */
+#define CNTCR_EN      (1u << 0) /* Enable system counter */
+#define CNTCR_HDBG    (1u << 1) /* Halt on debug */
+
+/* SECURE TIMER SERVICES */
+#define CNTPS_PROGRAM   0x1   /* arg1 = delta_ticks */
+#define CNTPS_DISABLE   0x2
+#define CNTHPS_PROGRAM  0x3
+#define CNTHPS_DISABLE  0x4
 
 /* MEC services */
 #define ENABLE_MEC   0x1

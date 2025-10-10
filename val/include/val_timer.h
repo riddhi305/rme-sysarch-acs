@@ -38,7 +38,13 @@ typedef enum {
   TIMER_INFO_SYS_CNT_BASE_N,
   TIMER_INFO_FRAME_NUM,
   TIMER_INFO_SYS_INTID,
-  TIMER_INFO_SYS_TIMER_STATUS
+  TIMER_INFO_SYS_TIMER_STATUS,
+  TIMER_INFO_SEC_PHY_EL1_INTID,
+  TIMER_INFO_SEC_PHY_EL1_FLAGS,
+  TIMER_INFO_SEC_PHY_EL2_INTID,
+  TIMER_INFO_SEC_PHY_EL2_FLAGS,
+  TIMER_INFO_SEC_VIR_EL2_INTID,
+  TIMER_INFO_SEC_VIR_EL2_FLAGS
 } TIMER_INFO_e;
 
 uint64_t val_timer_get_info(TIMER_INFO_e info_type, uint64_t instance);
@@ -53,5 +59,25 @@ void val_platform_timer_get_entry_index(uint64_t instance, uint32_t *block, uint
 uint64_t val_get_phy_el2_timer_count(void);
 uint64_t val_get_phy_el1_timer_count(void);
 uint64_t val_get_counter_frequency(void);
+
+/* Secure EL2 (CNTHPS_*_EL2) APIs */
+void val_timer_set_sec_phy_el2(uint64_t timeout);
+
+/* Secure EL2 (CNTHVS_*_EL2) APIs */
+void val_timer_set_sec_vir_el2(uint64_t timeout);
+void val_timer_set_sec_virt_el2(uint64_t ticks);
+void val_timer_disable_sec_virt_el2(void);
+uint64_t cpu_has_cnthvs(void);
+
+/* Optional diagnostics */
+uint64_t val_get_sec_phy_el2_timer_count(void);
+
+/* Timer and GIC test entries */
+uint32_t t01_entry(uint32_t num_pe);
+uint32_t t02_entry(uint32_t num_pe);
+uint32_t g01_entry(uint32_t num_pe);
+uint32_t g02_entry(uint32_t num_pe);
+uint32_t g03_entry(uint32_t num_pe);
+uint32_t s01_entry(uint32_t num_pe);
 
 #endif // __RME_ACS_TIMER_H__

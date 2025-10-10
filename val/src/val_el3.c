@@ -720,3 +720,97 @@ uint32_t val_smmu_rlm_configure_mecid(smmu_master_attributes_t *smmu_attr, uint3
     return 0;
   }
 }
+
+/**
+ * @brief Program the Secure Physical timer (CNTPS) to expire after
+ * the specified number of counter ticks. EL3 sets:
+ * CNTPS_CVAL_EL1 = CNTPCT + delta_ticks;
+ * CNTPS_CTL_EL1 = ENABLE=1, IMASK=0;
+ * Returns 1 on error, 0 on success.
+ * @param delta_ticks - Comparator delta in system counter ticks
+ * @return 1 on error, 0 on success
+**/
+
+uint32_t val_cntps_program_el3(uint64_t delta_ticks)
+{
+  UserCallSMC(ARM_ACS_SMC_FID, SEC_TIMER_SERVICE, CNTPS_PROGRAM, delta_ticks, 0);
+
+  /* Avoid prints on secondary PEs */
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+    return shared_data->status_code ? 1 : 0;
+
+  if (shared_data->status_code != 0) {
+    //val_print(ACS_PRINT_ERR, shared_data->error_msg, shared_data->error_code);
+    return 1;
+  } else {
+    //val_print(ACS_PRINT_INFO, " EL3: CNTPS programmed successfully", 0);
+    return 0;
+  }
+}
+
+/**
+ * @brief Disable the Secure Physical timer (CNTPS) at EL3 by clearing ENABLE.
+ * Returns 1 on error, 0 on success.
+ * @return 1 on error, 0 on success
+**/
+uint32_t val_cntps_disable_el3(void)
+{
+  UserCallSMC(ARM_ACS_SMC_FID, SEC_TIMER_SERVICE, CNTPS_DISABLE, 0, 0);
+  
+  /* Avoid prints on secondary PEs */
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+    return shared_data->status_code ? 1 : 0;
+ 
+  if (shared_data->status_code != 0) {
+    //val_print(ACS_PRINT_ERR, shared_data->error_msg, shared_data->error_code);
+    return 1;
+  } else {
+    //val_print(ACS_PRINT_INFO, " EL3: CNTPS disabled successfully", 0);
+    return 0;
+  }
+}
+
+/* GET SCR_EL3 via ACS service */
+uint64_t pal_el3_get_scr(uint64_t *scr)
+{
+  if (!scr){
+    return 1;
+  }
+
+  UserCallSMC(ARM_ACS_SMC_FID, SMC_FID_GET_SCR_EL3, 0, 0, 0);
+
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+    return shared_data->status_code ? 1 : 0;
+
+  if (shared_data->status_code != 0) {
+    /* val_print(ACS_PRINT_ERR, shared_data->error_msg, 0); */
+    return 1;
+  }
+
+  /* EL3 should place the SCR value into ret0 */
+  *scr = shared_data->status_code ? 1:0;
+  return 0;
+}
+
+/* UPDATE SCR_EL3 via ACS service (Arg0 fixed) */
+uint64_t pal_el3_update_scr(uint64_t set_bits, uint64_t clear_bits)
+{
+  UserCallSMC(ARM_ACS_SMC_FID, SMC_FID_UPDATE_SCR_EL3, set_bits, clear_bits, 0);
+
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+    return shared_data->status_code ? 1 : 0;
+
+  return (shared_data->status_code != 0);  /* 0 = OK, 1 = error */
+}
+
+uint64_t
+val_smmu_read_cfg_el3(uint32_t smmu_idx, uint32_t reg_off, uint32_t bank)
+{
+    /* services=SMMU_READ_CFG_BANK, arg0=ARM_ACS_SMC_FID (fixed), arg1=(idx<<32)|off, arg2=bank */
+    UserCallSMC(SMMU_READ_CFG_BANK, ARM_ACS_SMC_FID, PACK_IDX_OFF(smmu_idx, reg_off), (uint64_t)bank, 0);
+
+    if (!shared_data) return 0ULL;
+    if (shared_data->status_code != 0) return 0ULL;
+
+    return shared_data->shared_data_access[0].data;
+}

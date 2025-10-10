@@ -48,6 +48,24 @@ pal_timer_platform_override(TIMER_INFO_TABLE *TimerTable)
       TimerTable->header.el2_virt_timer_gsiv = PLATFORM_OVERRIDE_EL2_VIR_TIMER_GSIV;
   }
 
+  /* --- S-EL2 physical timer (CNTHPS_*_EL2) --- */
+  #if defined(PLATFORM_OVERRIDE_S_EL2_TIMER_GSIV)
+      TimerTable->header.s_el2_timer_gsiv = PLATFORM_OVERRIDE_S_EL2_TIMER_GSIV; // 0x14
+  #endif
+
+  #if defined(PLATFORM_OVERRIDE_S_EL2_TIMER_FLAGS)
+      TimerTable->header.s_el2_timer_flag = PLATFORM_OVERRIDE_S_EL2_TIMER_FLAGS;
+  #endif
+
+  /* --- S-EL2 virtual (CNTHVS_*_EL2) --- */
+  #if defined(PLATFORM_OVERRIDE_S_EL2_VIRT_TIMER_GSIV)
+      TimerTable->header.s_el2_virt_timer_gsiv = PLATFORM_OVERRIDE_S_EL2_VIRT_TIMER_GSIV;
+  #endif
+ 
+  #if defined(PLATFORM_OVERRIDE_S_EL2_VIRT_TIMER_FLAGS)
+      TimerTable->header.s_el2_virt_timer_flag = PLATFORM_OVERRIDE_S_EL2_VIRT_TIMER_FLAGS;
+  #endif
+
 }
 
 /**
@@ -93,6 +111,10 @@ pal_timer_create_info_table(TIMER_INFO_TABLE *TimerTable)
   TimerTable->header.el2_timer_gsiv    = gGtdtHdr->NonSecurePL2TimerGSIV;
   TimerTable->header.virtual_timer_flag = gGtdtHdr->VirtualTimerFlags;
   TimerTable->header.virtual_timer_gsiv = gGtdtHdr->VirtualTimerGSIV;
+  TimerTable->header.s_el2_timer_flag = 0;
+  TimerTable->header.s_el2_timer_gsiv = 0;
+  TimerTable->header.s_el2_virt_timer_flag = 0;
+  TimerTable->header.s_el2_virt_timer_gsiv = 0;
 
   Length         = gGtdtHdr->PlatformTimerOffset;
   Entry          = (EFI_ACPI_6_1_GTDT_GT_BLOCK_STRUCTURE *) ((UINT8 *)gGtdtHdr + Length);
