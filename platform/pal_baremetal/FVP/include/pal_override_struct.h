@@ -60,6 +60,10 @@ typedef struct {
   uint32_t virtual_timer_gsiv;
   uint32_t el2_virt_timer_gsiv;
   uint32_t num_platform_timer;
+  uint32_t s_el2_timer_gsiv;
+  uint32_t s_el2_timer_flag;
+  uint32_t s_el2_virt_timer_gsiv;
+  uint32_t s_el2_virt_timer_flag;
 } PLATFORM_OVERRIDE_TIMER_INFO_HDR;
 
 typedef struct {

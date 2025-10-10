@@ -48,6 +48,10 @@ pal_timer_create_info_table(TIMER_INFO_TABLE *TimerTable)
   TimerTable->header.virtual_timer_flag  = platform_timer_cfg.header.virtual_timer_flags;
   TimerTable->header.virtual_timer_gsiv  = platform_timer_cfg.header.virtual_timer_gsiv;
   TimerTable->header.el2_virt_timer_gsiv = platform_timer_cfg.header.el2_virt_timer_gsiv;
+  TimerTable->header.s_el2_timer_flag = platform_timer_cfg.header.s_el2_timer_flag;
+  TimerTable->header.s_el2_timer_gsiv = platform_timer_cfg.header.s_el2_timer_gsiv;
+  TimerTable->header.s_el2_virt_timer_flag = platform_timer_cfg.header.s_el2_virt_timer_flag;
+  TimerTable->header.s_el2_virt_timer_gsiv = platform_timer_cfg.header.s_el2_virt_timer_gsiv;
 
   TimerTable->gt_info->type            = platform_timer_cfg.gt_info.type;
   TimerTable->gt_info->block_cntl_base = platform_timer_cfg.gt_info.block_cntl_base;

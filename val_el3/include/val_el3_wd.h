@@ -25,6 +25,12 @@
 void val_el3_wd_enable(uint64_t wdog_ctrl_base);
 void val_el3_wd_disable(uint64_t wdog_ctrl_base);
 void val_el3_wd_set_ws0(uint64_t VA_RT_WDOG, uint32_t timeout, uint64_t counter_freq);
+uint64_t el3_read_cntcv_robust(uintptr_t base);
+uint32_t el3_read_cntid(uintptr_t cntctl_base);
+uint64_t el3_cntps_program_ticks(uint64_t delta_ticks);
+uint32_t el3_cntps_disable(void);
+void cnthps_program_tval_el2(uint64_t ticks_from_now);
+void cnthps_disable_el2(void);
 #endif /* __ASSEMBLER__ */
 
 #endif /* VAL_EL3_WD_H */

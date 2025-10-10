@@ -687,6 +687,8 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
           g_enable_module |= (1 << 5);
         else if (StrCmp(next, L"ls") == 0)
           g_enable_module |= (1 << 6);
+        else if (StrCmp(next, L"timer") == 0)
+          g_enable_module |= (1 << 7);
 
         next = token + 1; // Move past the comma
       }
@@ -708,6 +710,8 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
           g_enable_module |= (1 << 5);
         else if (StrCmp(next, L"ls") == 0)
           g_enable_module |= (1 << 6);
+        else if (StrCmp(next, L"timer") == 0)
+          g_enable_module |= (1 << 7);
       }
     }
     else
@@ -974,6 +978,8 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
   Status |= val_rme_dpt_execute_tests(val_pe_get_num());
 
   Status |= val_rme_mec_execute_tests(val_pe_get_num());
+
+  Status |= val_timer_execute_tests(val_pe_get_num());
 
 print_test_status:
   val_print(ACS_PRINT_ALWAYS, "\n------------------------------------------------------- \n", 0);

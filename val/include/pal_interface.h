@@ -18,6 +18,10 @@
 #ifndef __PAL_INTERFACE_H__
 #define __PAL_INTERFACE_H__
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+
 #if TARGET_BM_BOOT
 
 #include "pal_override_fvp.h"
@@ -79,6 +83,14 @@
   typedef UINT32 uint32_t;
   typedef UINT64 uint64_t;
   typedef UINT64 addr_t;
+
+  typedef CHAR8  char8_t;
+#ifndef __cplusplus
+typedef CHAR16 char16_t;   // OK in C; in C++ char16_t is a keyword
+#endif
+typedef uint64_t addr_t;   // use stdint types here
+typedef uint64_t dma_addr_t; // add if you need it on UEFI
+
 
 #if PLATFORM_OVERRIDE_TIMEOUT
 #define TIMEOUT_LARGE  PLATFORM_OVERRIDE_TIMEOUT_LARGE
@@ -281,6 +293,10 @@ typedef struct {
   uint32_t num_platform_timer;
   uint32_t num_watchdog;
   uint32_t sys_timer_status;
+  uint32_t s_el2_timer_flag; /* CNTHPS_* flags */
+  uint32_t s_el2_timer_gsiv; /* CNTHPS_* PPI */
+  uint32_t s_el2_virt_timer_flag; /* CNTHVS_* flags */
+  uint32_t s_el2_virt_timer_gsiv; /* CNTHVS_* PPI */
 } TIMER_INFO_HDR;
 
 #define TIMER_TYPE_SYS_TIMER 0x2001
@@ -306,6 +322,10 @@ typedef struct {
 } TIMER_INFO_TABLE;
 
 void pal_timer_create_info_table(TIMER_INFO_TABLE *timer_info_table);
+
+/* -------- EL3 SCR helpers (query/update via SMC) -------- */
+uint64_t pal_el3_get_scr(uint64_t *scr);
+uint64_t pal_el3_update_scr(uint64_t set_bits, uint64_t clear_bits);
 
 /* PCIe Tests related definitions */
 

@@ -89,6 +89,18 @@ val_timer_get_info(TIMER_INFO_e info_type, uint64_t instance)
           return g_timer_info_table->header.el2_timer_flag;
       case TIMER_INFO_SYS_TIMER_STATUS:
           return g_timer_info_table->header.sys_timer_status;
+      case TIMER_INFO_SEC_PHY_EL1_INTID:
+          return g_timer_info_table->header.s_el1_timer_gsiv;
+      case TIMER_INFO_SEC_PHY_EL1_FLAGS:
+          return g_timer_info_table->header.s_el1_timer_flag;
+      case TIMER_INFO_SEC_PHY_EL2_INTID:
+          return g_timer_info_table->header.s_el2_timer_gsiv;
+      case TIMER_INFO_SEC_PHY_EL2_FLAGS:
+          return g_timer_info_table->header.s_el2_timer_flag;
+      case TIMER_INFO_SEC_VIR_EL2_INTID:
+          return g_timer_info_table->header.s_el2_virt_timer_gsiv;
+      case TIMER_INFO_SEC_VIR_EL2_FLAGS:
+          return g_timer_info_table->header.s_el2_virt_timer_flag;
     default:
       return 0;
   }
@@ -335,4 +347,117 @@ val_timer_skip_if_cntbase_access_not_allowed(uint64_t index)
   } else
       return ACS_STATUS_SKIP;
 
+}
+
+/**
+  @brief Program the S-EL2 physical timer (CNTHPS_*_EL2) with the timeout.
+         Same semantics as val_timer_set_phy_el2: timeout==0 disables.
+**/
+void
+val_timer_set_sec_phy_el2(uint64_t timeout)
+{
+  if (timeout != 0) {
+    ArmGenericTimerDisableTimer(CnthpsCtl);
+    val_timer_ArmArchTimerWriteReg(CnthpsTval, &timeout);
+    ArmGenericTimerEnableTimer(CnthpsCtl);
+  } else {
+    ArmGenericTimerDisableTimer(CnthpsCtl);
+  }
+}
+
+/* S-EL2 virtual timer for CNTHVS */
+void
+val_timer_set_sec_vir_el2(uint64_t timeout)
+{
+  if (timeout != 0) {
+    ArmGenericTimerDisableTimer(CnthvsCtl);
+    val_timer_ArmArchTimerWriteReg(CnthvsTval, &timeout);
+    ArmGenericTimerEnableTimer(CnthvsCtl);
+  } else {
+       ArmGenericTimerDisableTimer(CnthvsCtl);
+  }
+}
+
+void val_timer_set_sec_virt_el2(uint64_t ticks)
+{
+    ArmWriteCnthvsTval(ticks);
+    ArmWriteCnthvsCtl(1);          /* ENABLE=1, IMASK=0 */
+}
+
+void val_timer_disable_sec_virt_el2(void)
+{
+    uint64_t ctl = ArmReadCnthvsCtl();
+    ctl &= ~1ull;                  /* ENABLE=0 */
+    ArmWriteCnthvsCtl(ctl);
+}
+
+uint64_t cpu_has_cnthvs(void)
+{
+    /* Non-invasive way: try reading the control reg in a guarded probe path
+       that catches a sync exception in your framework. Return 1 if it didn’t fault. */
+    (void)ArmReadCnthvsCtl();
+    return 1;  /* if your framework turns faults into returns, set 0 when it faults */
+}
+
+/* Optional diagnostics */
+uint64_t
+val_get_sec_phy_el2_timer_count(void)
+{
+  return val_timer_ArmArchTimerReadReg(CnthpsCval); /* If you wired CVAL, else omit this API */
+}
+
+
+/**
+  @brief   This API executes all the TIMER tests sequentially
+           1. Caller       -  Application layer.
+           2. Prerequisite -  Platform timer info available
+  @param   num_pe - the number of PE to run these tests on.
+  @return  Consolidated status of all the tests run.
+**/
+uint32_t
+val_timer_execute_tests(uint32_t num_pe)
+{
+  uint32_t status = ACS_STATUS_SKIP, i;
+  uint32_t num_timers;
+
+  /* Respect per-module skip strings */
+  for (i = 0; i < g_num_skip; i++) {
+      if (val_memory_compare((char8_t *)g_skip_test_str[i], TIMER_MODULE,
+                             val_strnlen(g_skip_test_str[i])) == 0)
+      {
+          val_print(ACS_PRINT_ALWAYS, "\n USER Override - Skipping all TIMER tests \n", 0);
+          return ACS_STATUS_SKIP;
+      }
+  }
+
+  /* Check if there are any tests to be executed in current module with user override options */
+  status = val_check_skip_module(TIMER_MODULE);
+  if (status) {
+    val_print(ACS_PRINT_ALWAYS, "\n USER Override - Skipping all TIMER tests \n", 0);
+    return ACS_STATUS_SKIP;
+  }
+
+  /* Ensure there is at least one platform/system counter frame */
+  num_timers = val_timer_get_info(TIMER_INFO_NUM_PLATFORM_TIMERS, 0);
+  if (num_timers == 0) {
+    val_print(ACS_PRINT_WARN, " No Platform Timers Found, Skipping TIMER tests...", 0);
+    return ACS_STATUS_SKIP;
+  }
+
+  /* Mark current module */
+  g_curr_module = 1 << TIMER_MODULE_ID;
+
+  val_print(ACS_PRINT_ALWAYS, "\n\n******************************************************* \n", 0);
+  val_print(ACS_PRINT_ALWAYS,     "             TIMER AND GIC AND SMMU TESTS               \n", 0);
+  val_print(ACS_PRINT_ALWAYS,     "******************************************************* \n", 0);
+
+  /* ALL NEW TESTS */
+  status = t01_entry(num_pe);
+  status |= t02_entry(num_pe);
+  status |= g01_entry(num_pe);
+  status |= g02_entry(num_pe);
+  status |= g03_entry(num_pe);
+  status |= s01_entry(num_pe);
+
+  return status;
 }

@@ -191,6 +191,9 @@ uint32_t val_gic_its_get_base(uint32_t its_id, uint64_t *its_base);
 /*TIMER VAL APIs */
 void val_timer_create_info_table(uint64_t *timer_info_table);
 void val_timer_free_info_table(void);
+uint32_t val_timer_execute_tests(uint32_t num_pe);
+uint32_t val_cntps_program_el3(uint64_t delta_ticks);
+uint32_t val_cntps_disable_el3(void);
 
 /* RME-DA APIs */
 uint32_t val_rme_da_execute_tests(uint32_t num_pe);
@@ -199,8 +202,13 @@ uint32_t val_rme_da_execute_tests(uint32_t num_pe);
 void val_iovirt_create_info_table(uint64_t *iovirt_info_table);
 void val_iovirt_free_info_table(void);
 
+/* SMMU DECLARATION */
+#define PACK_IDX_OFF(idx, off) ( (((uint64_t)(idx)) << 32) | ((uint64_t)(uint32_t)(off)) )
+
 /* SMMU API */
 uint32_t val_smmu_execute_tests(uint32_t num_pe);
+uint64_t val_smmu_read_cfg_el3(uint32_t smmu_idx, uint32_t reg_off /* SMMUv3 Page0 offset */,
+                               uint32_t bank /*0=NS,1=S*/);
 
 /* Initialize runtime-dependent VAL globals (free mem, shared data, nvm). */
 void val_init_runtime_params(void);
@@ -265,6 +273,9 @@ uint32_t val_rme_dpt_execute_tests(uint32_t num_pe);
 
 /* RME-MEC APIs */
 uint32_t val_rme_mec_execute_tests(uint32_t num_pe);
+
+/* TIMER TESTS */
+uint32_t val_timer_execute_tests(uint32_t num_pe);
 
 /* System Configuration */
 /* System Configuration

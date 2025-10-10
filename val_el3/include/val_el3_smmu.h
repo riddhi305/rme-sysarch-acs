@@ -24,6 +24,10 @@
 #include <val_el3_pgt.h>
 #include <val_el3_mec.h>
 
+#define SMMU_SECURE_BANK_OFFSET (0x8000u)
+
+#define UNPACK_IDX(a1)   ((uint32_t)((a1) >> 32))
+#define UNPACK_OFF(a1)   ((uint32_t)((a1) & 0xFFFFFFFFu))
 
 #define CMDQ_OP_PREFETCH_CFG 0x1
 #define CMDQ_OP_CFGI_STE 0x3
@@ -404,6 +408,11 @@ typedef struct {
     uint32_t bypass;
 } smmu_master_attributes_t;
 
+typedef enum {
+  SMMU_REG_BANK_NS = 0,
+  SMMU_REG_BANK_S  = 1
+} smmu_reg_bank_e;
+
 uint32_t val_el3_smmu_dpt_init(smmu_dev_t *smmu);
 int32_t val_el3_smmu_reg_write_sync(smmu_dev_t *smmu, uint32_t val,
                                     uint32_t reg_off, uint32_t ack_off);
@@ -418,6 +427,7 @@ void val_el3_dpt_invalidate_all(uint64_t smmu_index);
 uint32_t val_el3_smmu_set_rlm_ste_mecid(smmu_master_attributes_t master_attr, uint32_t mecid);
 bool val_el3_smmu_supports_mec(uint64_t smmu_base);
 uint32_t val_el3_smmu_get_mecidw(uint64_t smmu_base);
+uint64_t val_el3_smmu_read_cfg_bank(uint32_t smmu_idx, uint32_t reg_off, uint32_t bank /*0=NS,1=S*/);
 
 #endif /* __ASSEMBLER__ */
 #endif /* VAL_EL3_SMMU_H */

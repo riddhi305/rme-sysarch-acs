@@ -95,6 +95,10 @@ PLATFORM_OVERRIDE_TIMER_INFO_TABLE platform_timer_cfg = {
     .header.virtual_timer_gsiv  = PLATFORM_OVERRIDE_VIRTUAL_TIMER_GSIV,
     .header.el2_virt_timer_gsiv = PLATFORM_OVERRIDE_EL2_VIR_TIMER_GSIV,
     .header.num_platform_timer  = PLATFORM_OVERRIDE_PLATFORM_TIMER_COUNT,
+    .header.s_el2_timer_flag = PLATFORM_OVERRIDE_S_EL2_TIMER_FLAGS,
+    .header.s_el2_virt_timer_gsiv = PLATFORM_OVERRIDE_S_EL2_VIRT_TIMER_GSIV,
+    .header.s_el2_timer_gsiv = PLATFORM_OVERRIDE_S_EL2_TIMER_GSIV,
+    .header.s_el2_virt_timer_flag = PLATFORM_OVERRIDE_S_EL2_VIRT_TIMER_FLAGS,
 
     .gt_info.type               = PLATFORM_OVERRIDE_TIMER_TYPE,
     .gt_info.timer_count        = PLATFORM_OVERRIDE_TIMER_COUNT,

@@ -1708,3 +1708,21 @@ void val_el3_smmu_root_config_service(uint64_t arg0, uint64_t arg1, uint64_t arg
           break;
   }
 }
+
+uint64_t val_el3_smmu_read_cfg_bank(uint32_t smmu_idx, uint32_t reg_off, uint32_t bank)
+{
+    if (smmu_idx >= g_num_smmus)
+        return 0ULL;
+
+    smmu_dev_t *smmu = &g_smmu[smmu_idx];
+    if (smmu->base == 0)
+        return 0ULL;
+
+    /* Translate standard SMMUv3 Page0 offset to Realm Page-0 window */
+    uint64_t off = (uint64_t)SMMU_R_PAGE_0_OFFSET + (uint64_t)reg_off;
+
+    if (bank == SMMU_REG_BANK_S)
+        off += (uint64_t)SMMU_SECURE_BANK_OFFSET;
+
+    return (uint64_t)val_el3_mmio_read(smmu->base + off);
+}

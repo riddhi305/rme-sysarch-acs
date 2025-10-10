@@ -63,6 +63,17 @@ GCC_ASM_EXPORT(ArmReadCnthvCtl)
 GCC_ASM_EXPORT(ArmWriteCnthvCtl)
 GCC_ASM_EXPORT(ArmReadCnthvTval)
 GCC_ASM_EXPORT(ArmWriteCnthvTval)
+GCC_ASM_EXPORT(ArmReadCnthpsCtl)
+GCC_ASM_EXPORT(ArmWriteCnthpsCtl)
+GCC_ASM_EXPORT(ArmReadCnthpsTval)
+GCC_ASM_EXPORT(ArmWriteCnthpsTval)
+GCC_ASM_EXPORT(ArmReadCnthpsCval) 
+GCC_ASM_EXPORT(ArmReadCnthvsCtl) 
+GCC_ASM_EXPORT(ArmWriteCnthvsCtl)
+GCC_ASM_EXPORT(ArmReadCnthvsTval)
+GCC_ASM_EXPORT(ArmWriteCnthvsTval)
+GCC_ASM_EXPORT(ArmReadCnthvsCval)
+
 
 ASM_PFX(ArmReadCntFrq):
   mrs   x0, cntfrq_el0           // Read CNTFRQ
@@ -205,6 +216,70 @@ ASM_PFX(ArmWriteCnthvTval):
   msr   cnthv_tval_el2, x0
   isb
   ret
+
+
+/* CNTHPS_CTL_EL2 = S3_6_C14_C2_1
+ CNTHPS_TVAL_EL2 = S3_6_C14_C2_0
+ CNTHPS_CVAL_EL2 = S3_6_C14_C2_2 */
+
+
+ASM_PFX(ArmReadCnthpsCtl):
+  mrs x0, S3_6_C14_C2_1
+  ret
+
+
+ASM_PFX(ArmWriteCnthpsCtl):
+  msr S3_6_C14_C2_1, x0
+  isb
+  ret
+
+
+ASM_PFX(ArmReadCnthpsTval):
+  mrs x0, S3_6_C14_C2_0
+  ret
+
+
+ASM_PFX(ArmWriteCnthpsTval):
+  msr S3_6_C14_C2_0, x0
+  isb
+  ret
+
+
+ASM_PFX(ArmReadCnthpsCval):
+  mrs x0, S3_6_C14_C2_2
+  ret
+
+
+/* CNTHVS_CTL_EL2 = S3_6_C14_C3_1
+ CNTHVS_TVAL_EL2 = S3_6_C14_C3_0
+ CNTHVS_CVAL_EL2 = S3_6_C14_C3_2 */
+
+
+ASM_PFX(ArmReadCnthvsCtl):
+  mrs x0, S3_6_C14_C3_1
+  ret
+
+
+ASM_PFX(ArmWriteCnthvsCtl):
+  msr S3_6_C14_C3_1, x0
+  isb
+  ret
+
+
+ASM_PFX(ArmReadCnthvsTval):
+  mrs x0, S3_6_C14_C3_0
+  ret
+
+
+ASM_PFX(ArmWriteCnthvsTval):
+  msr S3_6_C14_C3_0, x0
+  isb
+  ret
+
+ASM_PFX(ArmReadCnthvsCval):
+  mrs x0, S3_6_C14_C3_2
+  ret
+
 
 #ifndef TARGET_EMULATION
 ASM_FUNCTION_REMOVE_IF_UNREFERENCED
