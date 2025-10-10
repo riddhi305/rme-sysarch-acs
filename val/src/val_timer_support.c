@@ -75,6 +75,19 @@ val_timer_ArmArchTimerReadReg(
         "The register is related to Hypervisor Mode. Can't perform requested operation\n ", 0);
       break;
 
+    case CnthpsCtl:
+      return ArmReadCnthpsCtl();
+    case CnthpsTval:
+      return ArmReadCnthpsTval();
+    case CnthpsCval:            
+      return ArmReadCnthpsCval();
+    case CnthvsCtl:
+      return ArmReadCnthvsCtl();
+    case CnthvsTval:
+      return ArmReadCnthvsTval();
+    case CnthvsCval:
+      return ArmReadCnthvsCval();
+
     default:
       val_print(ACS_PRINT_WARN, "Unknown ARM Generic Timer register %x. \n ", Reg);
     }
@@ -147,6 +160,19 @@ val_timer_ArmArchTimerWriteReg(
     case CnthpCval:
       val_print(ACS_PRINT_WARN,
         "The register is related to Hypervisor Mode. Can't perform requested operation\n ", 0);
+      break;
+
+    case CnthpsTval:
+      ArmWriteCnthpsTval(*data_buf);
+      break;
+    case CnthpsCtl:
+      ArmWriteCnthpsCtl(*data_buf);
+      break;
+    case CnthvsTval:
+      ArmWriteCnthvsTval(*data_buf);
+      break;
+    case CnthvsCtl:
+      ArmWriteCnthvsCtl(*data_buf);
       break;
 
     default:

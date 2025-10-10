@@ -100,3 +100,16 @@ void val_el3_wd_set_ws0(uint64_t VA_RT_WDOG, uint32_t timeout, uint64_t counter_
   val_el3_wd_enable(ctrl_base);
 
 }
+
+uint64_t el3_read_cntcv_robust(uintptr_t cntctl_base) {
+  uint32_t hi1 = val_mmio_read_el3(cntctl_base + CNTCV_HIGHER);
+  uint32_t lo  = val_mmio_read_el3(cntctl_base + CNTCV_LOWER);
+  uint32_t hi2 = val_mmio_read_el3(cntctl_base + CNTCV_HIGHER);
+  if (hi1 == hi2) return ((uint64_t)hi1 << 32) | lo;
+  uint32_t lo2 = val_mmio_read_el3(cntctl_base + CNTCV_LOWER);
+  return ((uint64_t)hi2 << 32) | lo2;
+}
+
+uint32_t el3_read_cntid(uintptr_t cntctl_base) {
+  return val_mmio_read_el3(cntctl_base + CNTID_OFFSET);
+}

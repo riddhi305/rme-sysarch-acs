@@ -173,6 +173,83 @@ void plat_arm_acs_smc_handler(uint64_t services, uint64_t arg0, uint64_t arg1, u
       arg0 = val_el3_modify_desc(arg0, CIPAE_NSE_BIT, 1, 1);
       val_el3_cmo_cipae(arg0);
       break;
+    case RME_READ_CNTPCT:
+      uintptr_t base = (uintptr_t)arg0;
+      INFO("EL3: CNTCTL base = 0x%lx\n", (unsigned long)base);
+      {
+        uint32_t cntcr = *(volatile uint32_t *)(base + CNTCR_OFFSET);
+        cntcr |= (CNTCR_EN | CNTCR_HDBG);
+        *(volatile uint32_t *)(base + CNTCR_OFFSET) = cntcr;
+      }
+      /* Robust 64-bit read of CNTCV */
+      uint64_t full = el3_read_cntcv_robust(base);
+      INFO("EL3: CNTCV (64-bit) = 0x%lx\n", (unsigned long)full);
+      if (mapped) {
+        shared_data->shared_data_access[0].data = full;
+        shared_data->status_code = 0;
+        shared_data->error_code  = 0;
+        shared_data->error_msg[0] = '\0';
+      }
+      break;
+    case RME_READ_CNTID: 
+      uintptr_t cntcl = (uintptr_t)arg0;
+      uint32_t cntid = el3_read_cntid(cntcl);
+      if ((cntid & 0xF) == 0) {
+        /* FEAT_CNTSC not implemented (RES0) */
+        if (mapped) {
+          shared_data->shared_data_access[0].data = 0;
+          shared_data->status_code = 0;       
+          shared_data->error_code  = 0;
+          shared_data->error_msg[0] = '\0';
+        }
+        INFO("CNTID: FEAT_CNTSC not implemented (RES0)\n");
+      } 
+      else if ((cntid & 0xF) == 0x1) {
+        if (mapped) {
+          shared_data->shared_data_access[0].data = (uint64_t)cntid;
+          shared_data->status_code = 0;
+          shared_data->error_code  = 0;
+          shared_data->error_msg[0] = '\0';
+        }
+        INFO("CNTID: CNTSC implemented (0x%x)\n", cntid & 0xF);
+      } 
+      else {
+        shared_data->status_code = 1;
+        const char *msg = "EL3: CNTID returned reserved value";
+        int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) 
+            shared_data->error_msg[i] = msg[i], i++;
+        shared_data->error_msg[i] = '\0';
+      }
+      break;
+    case SEC_TIMER_SERVICE:
+      INFO("Secure timer (CNTPS) service \n");
+      if (arg0 == CNTPS_PROGRAM) {
+        int rc = el3_cntps_program_ticks(arg1);
+        if (mapped) { 
+          shared_data->status_code = rc ? 1 : 0; 
+          shared_data->error_code = 0; 
+          shared_data->error_msg[0] = '\0'; 
+        }
+      } else if (arg0 == CNTPS_DISABLE) {
+        int rc1 = el3_cntps_disable();
+        if (mapped) { 
+          shared_data->status_code = rc1 ? 1 : 0; 
+          shared_data->error_code = 0; 
+          shared_data->error_msg[0] = '\0'; 
+        }
+      } else {
+        if (mapped) {
+          shared_data->status_code = 1;
+          const char *msg = "EL3: Invalid CNTPS sub-op";
+          int i = 0; 
+          while (msg[i] && i < sizeof(shared_data->error_msg)-1){
+            shared_data->error_msg[i] = msg[i], 
+            i++;
+            shared_data->error_msg[i] = '\0';
+          }
+        }
+      }
+      break;
     default:
       if (mapped) {
         shared_data->status_code = 0xFFFFFFFF;

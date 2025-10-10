@@ -21,6 +21,9 @@
 #include "include/val_interface.h"
 #include "include/val_el32.h"
 
+#define SMC_FID_GET_SCR_EL3 0xC2001101u /* fast call, 64b convention */
+#define SMC_FID_UPDATE_SCR_EL3 0xC2001102u /* Arg1=set_bits, Arg2=clear_bits */
+
 /**
  *  @brief  This API is used to set the given memory with the required data
  *          with the specified size.
@@ -719,4 +722,76 @@ uint32_t val_smmu_rlm_configure_mecid(smmu_master_attributes_t *smmu_attr, uint3
     val_print(ACS_PRINT_INFO, " EL3: SMMU MECID configured successfully", 0);
     return 0;
   }
+}
+
+/**
+ * @brief Program the Secure Physical timer (CNTPS) to expire after
+ * the specified number of counter ticks. EL3 sets:
+ * CNTPS_CVAL_EL1 = CNTPCT + delta_ticks;
+ * CNTPS_CTL_EL1 = ENABLE=1, IMASK=0;
+ * Returns 1 on error, 0 on success.
+ * @param delta_ticks - Comparator delta in system counter ticks
+ * @return 1 on error, 0 on success
+**/
+
+uint32_t val_cntps_program_el3(uint64_t delta_ticks)
+{
+  UserCallSMC(ARM_ACS_SMC_FID, SEC_TIMER_SERVICE, CNTPS_PROGRAM, delta_ticks, 0);
+
+  /* Avoid prints on secondary PEs */
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+    return shared_data->status_code ? 1 : 0;
+
+  if (shared_data->status_code != 0) {
+    //val_print(ACS_PRINT_ERR, shared_data->error_msg, shared_data->error_code);
+    return 1;
+  } else {
+    //val_print(ACS_PRINT_INFO, " EL3: CNTPS programmed successfully", 0);
+    return 0;
+  }
+}
+
+/**
+ * @brief Disable the Secure Physical timer (CNTPS) at EL3 by clearing ENABLE.
+ * Returns 1 on error, 0 on success.
+ * @return 1 on error, 0 on success
+**/
+uint32_t val_cntps_disable_el3(void)
+{
+  UserCallSMC(ARM_ACS_SMC_FID, SEC_TIMER_SERVICE, CNTPS_DISABLE, 0, 0);
+  
+  /* Avoid prints on secondary PEs */
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+    return shared_data->status_code ? 1 : 0;
+ 
+  if (shared_data->status_code != 0) {
+    //val_print(ACS_PRINT_ERR, shared_data->error_msg, shared_data->error_code);
+    return 1;
+  } else {
+    //val_print(ACS_PRINT_INFO, " EL3: CNTPS disabled successfully", 0);
+    return 0;
+  }
+}
+
+uint64_t pal_el3_get_scr(uint64_t *scr)
+{
+  if (!scr) 
+    return -1;
+ 
+  ARM_SMC_ARGS a = {0};
+  a.Arg0 = SMC_FID_GET_SCR_EL3;
+  pal_pe_call_smc(&a, pal_psci_get_conduit());
+  if (a.Arg0) return (int)a.Arg0; /* nonzero => error */
+  *scr = a.Arg1;
+  return 0;
+}
+
+uint64_t pal_el3_update_scr(uint64_t set_bits, uint64_t clear_bits)
+{
+  ARM_SMC_ARGS a = {0};
+  a.Arg0 = SMC_FID_UPDATE_SCR_EL3;
+  a.Arg1 = set_bits;
+  a.Arg2 = clear_bits;
+  pal_pe_call_smc(&a, pal_psci_get_conduit());
+  return (int)a.Arg0; /* 0 = OK */
 }

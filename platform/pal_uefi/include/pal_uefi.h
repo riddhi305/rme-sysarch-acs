@@ -305,6 +305,10 @@ typedef struct
   UINT32 num_platform_timer;
   UINT32 num_watchdog;
   UINT32 sys_timer_status;
+  UINT32 s_el2_timer_flag;
+  UINT32 s_el2_timer_gsiv;
+  UINT32 s_el2_virt_timer_gsiv;
+  UINT32 s_el2_virt_timer_flag;
 } TIMER_INFO_HDR;
 
 #define TIMER_TYPE_SYS_TIMER 0x2001

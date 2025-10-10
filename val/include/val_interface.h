@@ -191,6 +191,9 @@ uint32_t val_gic_its_get_base(uint32_t its_id, uint64_t *its_base);
 /*TIMER VAL APIs */
 void val_timer_create_info_table(uint64_t *timer_info_table);
 void val_timer_free_info_table(void);
+uint32_t val_timer_execute_tests(uint32_t num_pe);
+uint32_t val_cntps_program_el3(uint64_t delta_ticks);
+uint32_t val_cntps_disable_el3(void);
 
 /* RME-DA APIs */
 uint32_t val_rme_da_execute_tests(uint32_t num_pe);
@@ -265,6 +268,9 @@ uint32_t val_rme_dpt_execute_tests(uint32_t num_pe);
 
 /* RME-MEC APIs */
 uint32_t val_rme_mec_execute_tests(uint32_t num_pe);
+
+/* TIMER TESTS */
+uint32_t val_timer_execute_tests(uint32_t num_pe);
 
 /* System Configuration */
 /* System Configuration
